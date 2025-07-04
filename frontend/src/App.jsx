@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import BusinessForm from "./components/BusinessForm";
 import BusinessCard from "./components/BusinessCard";
+import 'react-toastify/dist/ReactToastify.css';
+import { FaSpinner } from "react-icons/fa";
 
 const App = () => {
   const [businessData, setBusinessData] = useState(null);
@@ -39,18 +41,35 @@ const App = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center p-4">
-      <h1 className="text-4xl font-extrabold text-blue-800 mb-8 text-center uppercase tracking-wide">
-        Local Business Dashboard
+    <div className="min-h-screen w-full flex flex-col items-center px-4 py-12 bg-gradient-to-br from-zinc-900 via-black to-neutral-950 relative overflow-hidden">
+
+      {/* Background glow */}
+      <div className="absolute top-[-100px] left-[-60px] w-[300px] h-[300px] bg-white/10 rounded-full blur-3xl opacity-30 animate-pulse" />
+      <div className="absolute bottom-[-100px] right-[-60px] w-[300px] h-[300px] bg-white/10 rounded-full blur-3xl opacity-30 animate-pulse" />
+
+      {/* Heading */}
+      <h1 className="text-4xl sm:text-5xl font-extrabold text-white text-center mb-14 tracking-wider z-10 leading-tight">
+        Local Business <span className="text-white/80">Dashboard</span>
       </h1>
-      <BusinessForm onSubmit={fetchBusinessData} />
-      {loading && <p className="text-blue-500 mt-4 font-medium">Loading...</p>}
-      {businessData && (
-        <BusinessCard
-          data={businessData}
-          onRegenerate={regenerateHeadline}
-        />
-      )}
+
+      {/* Content Wrapper */}
+      <div className="relative z-10 w-full max-w-3xl flex flex-col items-center gap-10">
+        <BusinessForm onSubmit={fetchBusinessData} />
+
+        {loading && (
+          <div className="mt-6 flex items-center justify-center">
+            <FaSpinner className="animate-spin text-white text-3xl" />
+            <span className="ml-3 text-white font-semibold text-lg">Fetching insights...</span>
+          </div>
+        )}
+
+        {businessData && !loading && (
+          <BusinessCard
+            data={businessData}
+            onRegenerate={regenerateHeadline}
+          />
+        )}
+      </div>
     </div>
   );
 };
