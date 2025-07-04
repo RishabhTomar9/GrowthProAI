@@ -5,10 +5,9 @@ import {
   FaCheckCircle,
   FaExclamationCircle,
 } from "react-icons/fa";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast } from "react-toastify";
 
-const BusinessForm = ({ onSubmit }) => {
+const BusinessForm = ({ onSubmit, disabled }) => {
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
   const [loading, setLoading] = useState(false);
@@ -44,33 +43,26 @@ const BusinessForm = ({ onSubmit }) => {
     );
   };
 
-  const simulateBackendSubmission = () => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const isSuccess = Math.random() > 0.2;
-        isSuccess ? resolve() : reject();
-      }, 1500);
-    });
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!name.trim() || !location.trim()) {
-      showErrorToast();
+      showErrorToast("Please fill in both fields.");
       return;
     }
 
     setLoading(true);
     try {
-      await simulateBackendSubmission();
-      await onSubmit(name, location);
-      showSuccessToast("Business data submitted!");
-      setSuccess(true);
-      setName("");
-      setLocation("");
-      setTimeout(() => setSuccess(false), 2000);
+      const isSubmitted = await onSubmit(name, location);
+      if (isSubmitted) {
+        showSuccessToast("Business data submitted!");
+        setSuccess(true);
+        setName("");         // Clear only on success
+        setLocation("");
+        setTimeout(() => setSuccess(false), 2000);
+      }
     } catch {
-      showErrorToast("Failed to submit. Try again.");
+      toast.error("Submission failed.");
     } finally {
       setLoading(false);
     }
@@ -81,8 +73,6 @@ const BusinessForm = ({ onSubmit }) => {
       onSubmit={handleSubmit}
       className="w-full max-w-lg p-10 sm:p-12 bg-white/75 backdrop-blur-2xl border border-blue-100 rounded-3xl shadow-[0_40px_60px_-15px_rgba(0,0,255,0.2)] hover:shadow-[0_60px_90px_-10px_rgba(0,0,255,0.3)] transition-all duration-500"
     >
-      <ToastContainer position="top-right" />
-
       <h2 className="text-4xl font-extrabold text-center text-blue-700 mb-10 tracking-tight">
         Business Insight
       </h2>
@@ -96,6 +86,7 @@ const BusinessForm = ({ onSubmit }) => {
         <input
           type="text"
           value={name}
+          disabled={disabled}
           onChange={(e) => setName(e.target.value)}
           className="w-full py-4 px-5 text-lg rounded-xl border border-blue-200 bg-white/80 shadow-inner focus:ring-2 focus:ring-blue-400 outline-none transition-all duration-300 hover:shadow-lg"
           placeholder="e.g., Cake & Co"
@@ -112,6 +103,7 @@ const BusinessForm = ({ onSubmit }) => {
         <input
           type="text"
           value={location}
+          disabled={disabled}
           onChange={(e) => setLocation(e.target.value)}
           className="w-full py-4 px-5 text-lg rounded-xl border border-blue-200 bg-white/80 shadow-inner focus:ring-2 focus:ring-blue-400 outline-none transition-all duration-300 hover:shadow-lg"
           placeholder="e.g., Mumbai"
@@ -122,9 +114,9 @@ const BusinessForm = ({ onSubmit }) => {
       {/* Submit Button */}
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || disabled}
         className={`w-full flex items-center justify-center gap-3 text-white text-lg font-bold py-3 px-5 rounded-xl shadow-md bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 hover:from-blue-600 hover:to-blue-900 transition-all duration-300 active:scale-[0.98] ${
-          loading ? "opacity-70 cursor-not-allowed" : ""
+          loading || disabled ? "opacity-70 cursor-not-allowed" : ""
         }`}
       >
         {loading ? (
@@ -134,7 +126,7 @@ const BusinessForm = ({ onSubmit }) => {
           </>
         ) : success ? (
           <>
-            <FaCheckCircle className="text-green-300 animate-bounce" />
+            <FaCheckCircle className="text-green-300" />
             Success!
           </>
         ) : (

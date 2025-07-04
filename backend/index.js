@@ -1,57 +1,79 @@
-const express = require('express')
-const cors = require('cors')
+const express = require("express");
+const cors = require("cors");
+const fs = require("fs");
+const path = require("path");
+const rateLimit = require("express-rate-limit");
 
-const app = express()
-const PORT = 5000
+const app = express();
+const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors())
-app.use(express.json())
+app.use(cors());
+app.use(express.json());
 
-// Sample SEO headlines
-const seoHeadlines = [
-  "Why {name} is {location}'s Top Choice for Quality in 2025",
-  "Discover the Magic of {name} in {location}",
-  "How {name} is Changing the Game for Businesses in {location}",
-  "{name}: Your Go-To Brand in {location}",
-  "People in {location} Love {name} – Here's Why!",
-  "{name} Dominates the Scene in {location} in 2025",
-]
+// Rate Limiting Middleware (100 requests per 15 mins per IP)
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: "Too many requests. Please try again later.",
+  },
+});
+app.use(limiter);
 
-// Helper to randomize and personalize headline
-const generateHeadline = (name, location) => {
-  const randomIndex = Math.floor(Math.random() * seoHeadlines.length)
-  return seoHeadlines[randomIndex].replace('{name}', name).replace('{location}', location)
+// Load SEO templates from JSON
+let seoTemplates = [];
+try {
+  const filePath = path.join(__dirname, "seoTemplates.json");
+  const fileData = fs.readFileSync(filePath, "utf-8");
+  seoTemplates = JSON.parse(fileData);
+} catch (err) {
+  console.error("Error reading seoTemplates.json:", err);
+  process.exit(1); // Exit app if template loading fails
 }
 
+// Replace placeholders
+const personalizeHeadline = (template, name, location) =>
+  template.replaceAll("{name}", name).replaceAll("{location}", location);
+
+// Generate random headline
+const generateHeadline = (name, location) => {
+  const randomIndex = Math.floor(Math.random() * seoTemplates.length);
+  return personalizeHeadline(seoTemplates[randomIndex], name, location);
+};
+
 // POST /business-data
-app.post('/business-data', (req, res) => {
-  const { name, location } = req.body
-  if (!name || !location) {
-    return res.status(400).json({ error: 'Missing business name or location' })
+app.post("/business-data", (req, res) => {
+  const { name, location } = req.body;
+
+  if (!name?.trim() || !location?.trim()) {
+    return res.status(400).json({ error: "Missing or invalid business name or location" });
   }
 
-  const responseData = {
-    rating: (Math.random() * (5 - 3.5) + 3.5).toFixed(1), // random rating between 3.5–5.0
-    reviews: Math.floor(Math.random() * 500 + 50),       // random reviews between 50–550
+  const data = {
+    rating: (Math.random() * (5 - 3.5) + 3.5).toFixed(1),
+    reviews: Math.floor(Math.random() * 500 + 50),
     headline: generateHeadline(name, location),
-  }
+  };
 
-  res.json(responseData)
-})
+  return res.status(200).json(data);
+});
 
 // GET /regenerate-headline
-app.get('/regenerate-headline', (req, res) => {
-  const { name, location } = req.query
-  if (!name || !location) {
-    return res.status(400).json({ error: 'Missing query params: name or location' })
+app.get("/regenerate-headline", (req, res) => {
+  const { name, location } = req.query;
+
+  if (!name?.trim() || !location?.trim()) {
+    return res.status(400).json({ error: "Missing query params: name or location" });
   }
 
-  const headline = generateHeadline(name, location)
-  res.json({ headline })
-})
+  const headline = generateHeadline(name, location);
+  return res.status(200).json({ headline });
+});
 
-// Start server
+// Start the server
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`)
-})
+  console.log(`🚀 Server running at http://localhost:${PORT}`);
+});
