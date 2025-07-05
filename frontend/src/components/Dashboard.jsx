@@ -5,6 +5,8 @@ import BusinessCard from "./BusinessCard";
 import { FaSpinner, FaRedoAlt } from "react-icons/fa";
 import { toast } from "react-toastify";
 
+const API_BASE = import.meta.env.VITE_API_BASE || "";
+
 const Dashboard = () => {
   const [businessData, setBusinessData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -13,7 +15,7 @@ const Dashboard = () => {
   const fetchBusinessData = async (name, location) => {
     setLoading(true);
     try {
-      const response = await fetch("/business-data", {
+      const response = await fetch(`${API_BASE}/business-data`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, location }),
@@ -33,7 +35,7 @@ const Dashboard = () => {
           <span>Something went wrong. Please try again....</span>
           <button
             onClick={() => fetchBusinessData(name, location)}
-            className="text-sm px-4 py-3 bg-white/20 text-white font-semibold border border-white/30 rounded-md hover:bg-white/30 transition duration-200"
+            className="text-sm px-3 py-2 bg-white/20 text-white font-semibold border border-white/30 rounded hover:bg-white/30 flex items-center gap-2"
           >
             <FaRedoAlt />
           </button>
@@ -55,7 +57,7 @@ const Dashboard = () => {
 
     try {
       const response = await fetch(
-        `/regenerate-headline?name=${businessData.name}&location=${businessData.location}`
+        `${API_BASE}/regenerate-headline?name=${businessData.name}&location=${businessData.location}`
       );
 
       if (!response.ok) throw new Error("Backend error");
@@ -71,10 +73,16 @@ const Dashboard = () => {
 
   return (
     <div className="relative z-10 w-full max-w-3xl flex flex-col items-center gap-10">
-      <BusinessForm onSubmit={fetchBusinessData} disabled={!backendAvailable} />
+      <BusinessForm
+        onSubmit={fetchBusinessData}
+        disabled={!backendAvailable}
+      />
 
       {loading && (
-        <div className="mt-6 flex items-center justify-center" aria-live="polite">
+        <div
+          className="mt-6 flex items-center justify-center"
+          aria-live="polite"
+        >
           <FaSpinner className="animate-spin text-white text-3xl" />
           <span className="ml-3 text-white font-semibold text-lg">
             Fetching insights...
@@ -83,7 +91,10 @@ const Dashboard = () => {
       )}
 
       {businessData && !loading && (
-        <BusinessCard data={businessData} onRegenerate={regenerateHeadline} />
+        <BusinessCard
+          data={businessData}
+          onRegenerate={regenerateHeadline}
+        />
       )}
     </div>
   );
