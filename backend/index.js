@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-    origin: "https://your-frontend.vercel.app", // Replace with actual frontend domain
+    origin: "https://growthproai-1.onrender.com", // Replace with actual frontend domain
     methods: ["GET", "POST"],
   }));
 app.use(express.json());
