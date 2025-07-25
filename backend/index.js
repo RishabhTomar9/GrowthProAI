@@ -11,9 +11,9 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-  origin: ["https://growthproai-1.onrender.com"],
-  methods: ["GET", "POST"],
-}));
+    origin: "https://growthproai-1.onrender.com", // Replace with actual frontend domain
+    methods: ["GET", "POST"],
+  }));
 app.use(express.json());
 
 // Rate Limiting
