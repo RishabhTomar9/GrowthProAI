@@ -1,22 +1,20 @@
 const express = require("express");
 const cors = require("cors");
+const fs = require("fs");
+const path = require("path");
 const rateLimit = require("express-rate-limit");
-const dotenv = require("dotenv");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // Middleware
 app.use(cors({
-  origin: "https://growthproai-1.onrender.com",
-  methods: ["GET", "POST"],
-}));
+    origin: "https://growthproai-1.onrender.com", // Replace with actual frontend domain
+    methods: ["GET", "POST"],
+  }));
 app.use(express.json());
 
+// Rate Limiting Middleware (100 requests per 15 mins per IP)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -28,57 +26,57 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// Gemini: Generate SEO headline using AI
-const generateAIHeadline = async (name, location) => {
-  try {
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+// Load SEO templates from JSON
+let seoTemplates = [];
+try {
+  const filePath = path.join(__dirname, "seoTemplates.json");
+  const fileData = fs.readFileSync(filePath, "utf-8");
+  seoTemplates = JSON.parse(fileData);
+} catch (err) {
+  console.error("Error reading seoTemplates.json:", err);
+  process.exit(1); // Exit app if template loading fails
+}
 
-    const prompt = `Generate a catchy SEO-optimized headline for a business named "${name}" located in "${location}". The headline should be short, engaging, and suitable for boosting search engine ranking.`;
+// Replace placeholders
+const personalizeHeadline = (template, name, location) =>
+  template.replaceAll("{name}", name).replaceAll("{location}", location);
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text().trim();
-
-    // Optional: Clean extra markdown/formatting if needed
-    return text.replace(/(^["`*]+|["`*]+$)/g, "");
-  } catch (err) {
-    console.error("Error generating headline with Gemini:", err);
-    return "Top-Rated Service in Your Area!"; // fallback headline
-  }
+// Generate random headline
+const generateHeadline = (name, location) => {
+  const randomIndex = Math.floor(Math.random() * seoTemplates.length);
+  return personalizeHeadline(seoTemplates[randomIndex], name, location);
 };
 
 // POST /business-data
-app.post("/business-data", async (req, res) => {
+app.post("/business-data", (req, res) => {
   const { name, location } = req.body;
 
   if (!name?.trim() || !location?.trim()) {
     return res.status(400).json({ error: "Missing or invalid business name or location" });
   }
 
-  const headline = await generateAIHeadline(name, location);
-
   const data = {
     rating: (Math.random() * (5 - 3.5) + 3.5).toFixed(1),
     reviews: Math.floor(Math.random() * 500 + 50),
-    headline,
+    headline: generateHeadline(name, location),
   };
 
   return res.status(200).json(data);
 });
 
 // GET /regenerate-headline
-app.get("/regenerate-headline", async (req, res) => {
+app.get("/regenerate-headline", (req, res) => {
   const { name, location } = req.query;
 
   if (!name?.trim() || !location?.trim()) {
     return res.status(400).json({ error: "Missing query params: name or location" });
   }
 
-  const headline = await generateAIHeadline(name, location);
+  const headline = generateHeadline(name, location);
   return res.status(200).json({ headline });
 });
 
-// Start server
+// Start the server
 app.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`);
 });
