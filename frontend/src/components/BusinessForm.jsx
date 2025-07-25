@@ -57,14 +57,16 @@ const BusinessForm = ({ onSubmit, disabled }) => {
       if (isSubmitted) {
         showSuccessToast("Business data submitted!");
         setSuccess(true);
-        setName("");         // Clear only on success
+        setName("");
         setLocation("");
         setTimeout(() => setSuccess(false), 2000);
+      } else {
+        showErrorToast("Submission failed. Please try again.");
       }
     } catch {
-      toast.error("Submission failed.");
+      showErrorToast("Submission failed due to server error.");
     } finally {
-      setLoading(false);
+      setLoading(false); // Ensure form is re-editable
     }
   };
 
@@ -86,7 +88,7 @@ const BusinessForm = ({ onSubmit, disabled }) => {
         <input
           type="text"
           value={name}
-          disabled={disabled}
+          disabled={disabled || loading}
           onChange={(e) => setName(e.target.value)}
           className="w-full py-4 px-5 text-lg rounded-xl border border-blue-200 bg-white/80 shadow-inner focus:ring-2 focus:ring-blue-400 outline-none transition-all duration-300 hover:shadow-lg"
           placeholder="e.g., Cake & Co"
@@ -103,7 +105,7 @@ const BusinessForm = ({ onSubmit, disabled }) => {
         <input
           type="text"
           value={location}
-          disabled={disabled}
+          disabled={disabled || loading}
           onChange={(e) => setLocation(e.target.value)}
           className="w-full py-4 px-5 text-lg rounded-xl border border-blue-200 bg-white/80 shadow-inner focus:ring-2 focus:ring-blue-400 outline-none transition-all duration-300 hover:shadow-lg"
           placeholder="e.g., Mumbai"
