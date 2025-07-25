@@ -9,7 +9,7 @@ const API_BASE =
   import.meta.env.VITE_API_BASE ||
   (import.meta.env.DEV
     ? "http://localhost:5000"
-    : "https://growthproai-emk3.onrender.com"); // ✅ make sure this matches Render backend
+    : "https://growthproai-gk8c.onrender.com"); // ✅ make sure this matches Render backend
 
 const Dashboard = () => {
   const [businessData, setBusinessData] = useState(null);
