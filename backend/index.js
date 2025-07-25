@@ -1,82 +1,95 @@
+// index.js
+
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const fs = require("fs");
-const path = require("path");
 const rateLimit = require("express-rate-limit");
+const fetch = require("node-fetch");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-    origin: "https://growthproai-1.onrender.com", // Replace with actual frontend domain
-    methods: ["GET", "POST"],
-  }));
+  origin: ["http://localhost:5173", "https://growthproai-1.onrender.com"],
+  methods: ["GET", "POST"],
+}));
 app.use(express.json());
 
-// Rate Limiting Middleware (100 requests per 15 mins per IP)
+// Rate Limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
-  message: {
-    error: "Too many requests. Please try again later.",
-  },
+  message: { error: "Too many requests. Please try again later." },
 });
 app.use(limiter);
 
-// Load SEO templates from JSON
-let seoTemplates = [];
-try {
-  const filePath = path.join(__dirname, "seoTemplates.json");
-  const fileData = fs.readFileSync(filePath, "utf-8");
-  seoTemplates = JSON.parse(fileData);
-} catch (err) {
-  console.error("Error reading seoTemplates.json:", err);
-  process.exit(1); // Exit app if template loading fails
-}
+// Headline Generator Function
+const generateHeadlineFromGemini = async (name, location) => {
+  const prompt = `Generate a compelling and concise SEO headline for a business named "${name}" located in "${location}". Provide only the headline.`;
 
-// Replace placeholders
-const personalizeHeadline = (template, name, location) =>
-  template.replaceAll("{name}", name).replaceAll("{location}", location);
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+      }),
+    }
+  );
 
-// Generate random headline
-const generateHeadline = (name, location) => {
-  const randomIndex = Math.floor(Math.random() * seoTemplates.length);
-  return personalizeHeadline(seoTemplates[randomIndex], name, location);
+  if (!response.ok) {
+    const errorData = await response.json();
+    console.error("Gemini API error:", errorData);
+    throw new Error("Failed to generate headline from Gemini API");
+  }
+
+  const data = await response.json();
+  return data.candidates[0].content.parts[0].text.replace(/["\n]/g, "");
 };
 
 // POST /business-data
-app.post("/business-data", (req, res) => {
+app.post("/business-data", async (req, res) => {
   const { name, location } = req.body;
 
   if (!name?.trim() || !location?.trim()) {
     return res.status(400).json({ error: "Missing or invalid business name or location" });
   }
 
-  const data = {
-    rating: (Math.random() * (5 - 3.5) + 3.5).toFixed(1),
-    reviews: Math.floor(Math.random() * 500 + 50),
-    headline: generateHeadline(name, location),
-  };
-
-  return res.status(200).json(data);
+  try {
+    const headline = await generateHeadlineFromGemini(name, location);
+    const data = {
+      rating: (Math.random() * (5 - 3.5) + 3.5).toFixed(1),
+      reviews: Math.floor(Math.random() * 500 + 50),
+      headline,
+    };
+    return res.status(200).json(data);
+  } catch (error) {
+    console.error("Error generating headline:", error);
+    return res.status(500).json({ error: "Failed to generate headline" });
+  }
 });
 
 // GET /regenerate-headline
-app.get("/regenerate-headline", (req, res) => {
+app.get("/regenerate-headline", async (req, res) => {
   const { name, location } = req.query;
 
   if (!name?.trim() || !location?.trim()) {
     return res.status(400).json({ error: "Missing query params: name or location" });
   }
 
-  const headline = generateHeadline(name, location);
-  return res.status(200).json({ headline });
+  try {
+    const headline = await generateHeadlineFromGemini(name, location);
+    return res.status(200).json({ headline });
+  } catch (error) {
+    console.error("Error regenerating headline:", error);
+    return res.status(500).json({ error: "Failed to regenerate headline" });
+  }
 });
 
-// Start the server
 app.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`);
 });
