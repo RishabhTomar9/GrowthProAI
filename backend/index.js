@@ -10,11 +10,17 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors({
-    origin: "https://growthproai-1.onrender.com", // Replace with actual frontend domain
+
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173", // your local dev frontend
+      "https://growthproai-1.onrender.com", // your deployed React frontend
+    ],
     methods: ["GET", "POST"],
-  }));
-app.use(express.json());
+    credentials: true,
+  })
+);
 
 // Rate Limiting
 const limiter = rateLimit({
